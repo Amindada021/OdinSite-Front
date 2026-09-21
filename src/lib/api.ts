@@ -16,7 +16,7 @@ export async function getPublishedPage(path: string, host: string) {
     {
       headers: {
         Accept: "application/json",
-        Host: effectiveHost(host)
+        "X-OdinSite-Host": effectiveHost(host)
       },
       next: {
         revalidate: 60,
