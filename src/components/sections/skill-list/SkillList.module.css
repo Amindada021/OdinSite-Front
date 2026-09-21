@@ -1,0 +1,15 @@
+.section { max-width: var(--max); margin: 0 auto; padding: clamp(90px, 12vw, 170px) var(--pad); border-bottom: 1px solid var(--line); }
+.section header { display: grid; grid-template-columns: 1fr 3fr; margin-bottom: 70px; }
+.section header span { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .1em; }
+.section header h2 { margin: 0; font-size: clamp(42px, 6vw, 88px); line-height: .95; letter-spacing: -.055em; max-width: 10ch; }
+.list { border-top: 1px solid var(--line); }
+.row { display: grid; grid-template-columns: 70px 1fr 110px 1.4fr; gap: 22px; align-items: start; padding: 26px 0; border-bottom: 1px solid var(--line); }
+.num, .years { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+.row h3 { margin: 0; font-size: clamp(28px, 3.5vw, 52px); letter-spacing: -.045em; }
+.detail p { margin: 0 0 16px; max-width: 46ch; line-height: 1.5; }
+.tags { display: flex; flex-wrap: wrap; gap: 7px; }
+.tags span { border: 1px solid var(--line); border-radius: 999px; padding: 5px 9px; font-size: 11px; text-transform: uppercase; }
+@media (max-width: 800px) {
+  .section header, .row { grid-template-columns: 1fr; }
+  .num { display: none; }
+}
