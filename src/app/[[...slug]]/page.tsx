@@ -8,7 +8,7 @@ import { mediaUrl } from "@/lib/media-url";
 type Props = { params: Promise<{ slug?: string[] }> };
 
 function pathFromSlug(slug?: string[]) {
-  return slug?.length ? `/${slug.map(encodeURIComponent).join("/")}` : "/";
+  return slug?.length ? `/${slug.join("/")}` : "/";
 }
 
 async function requestContext(params: Props["params"]) {
