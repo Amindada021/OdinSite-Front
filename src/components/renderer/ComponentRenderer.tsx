@@ -21,10 +21,11 @@ const registry: Record<string, Section> = {
   "cta.contact": ContactCta
 };
 
-export function ComponentRenderer({ component }: { component: ComponentDto }) {
+export function ComponentRenderer({ component, preview = false }: { component: ComponentDto; preview?: boolean }) {
   const SectionComponent = registry[component.type];
 
   if (!SectionComponent) {
+    if (preview) return <p dir="rtl" role="alert">این کامپوننت هنوز در فرانت پیاده‌سازی نشده است: {component.type}</p>;
     if (process.env.NODE_ENV === "development") {
       return <div data-unknown-component={component.type} />;
     }

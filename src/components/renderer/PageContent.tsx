@@ -1,0 +1,24 @@
+import type { PublicPagePayload } from "@/lib/contracts";
+import { mediaUrl } from "@/lib/media-url";
+import { ComponentRenderer } from "./ComponentRenderer";
+
+// Shared by the public server-rendered page and the live editor preview.
+export function PageContent({ payload, preview = false }: { payload: PublicPagePayload; preview?: boolean }) {
+  const background = mediaUrl(payload.page.background);
+  return (
+    <main id="main" className="site-shell">
+      {background && <>
+        <img className="site-background" src={background} alt="" aria-hidden />
+        <div className="site-background-overlay" aria-hidden />
+      </>}
+      {!preview && payload.seo.structuredData ? (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{
+          __html: JSON.stringify(payload.seo.structuredData).replace(/</g, "\\u003c")
+        }} />
+      ) : null}
+      {payload.components.map(component => (
+        <ComponentRenderer component={component} key={component.id} preview={preview} />
+      ))}
+    </main>
+  );
+}

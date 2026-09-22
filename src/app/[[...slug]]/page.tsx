@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
-import { ComponentRenderer } from "@/components/renderer/ComponentRenderer";
+import { PageContent } from "@/components/renderer/PageContent";
 import { getPublishedPage } from "@/lib/api";
 import { mediaUrl } from "@/lib/media-url";
 
@@ -54,30 +54,5 @@ export default async function PublicPage({ params }: Props) {
   const result = await getPublishedPage(path, host);
   if (!result) notFound();
 
-  const payload = result.data;
-  const background = mediaUrl(payload.page.background);
-
-  return (
-    <main id="main" className="site-shell">
-      {background && (
-        <>
-          <img className="site-background" src={background} alt="" aria-hidden />
-          <div className="site-background-overlay" aria-hidden />
-        </>
-      )}
-
-      {payload.seo.structuredData ? (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify(payload.seo.structuredData).replace(/</g, "\\u003c")
-          }}
-        />
-      ) : null}
-
-      {payload.components.map(component => (
-        <ComponentRenderer component={component} key={component.id} />
-      ))}
-    </main>
-  );
+  return <PageContent payload={result.data} />;
 }

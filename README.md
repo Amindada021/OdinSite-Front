@@ -49,3 +49,10 @@ ODINSITE_PREVIEW_HOST=example.com
 | `cta.contact` | Contact CTA + compact footer |
 
 See `docs/component-contracts.md` for the data contract.
+
+
+## Live builder preview
+
+Set `ODINSITE_PREVIEW_PARENT_ORIGINS` to the exact admin panel origin(s), comma-separated, without trailing slashes. In ASP.NET set `NextJs__PreviewUrl` to this app's `/builder-preview` URL. Both apps must be deployed and restarted. For local HTTP development use `http://localhost:54920` for the panel and `http://localhost:3000/builder-preview` for the preview; HTTPS panels require an HTTPS preview.
+
+The authenticated panel sends unsaved page data directly to the iframe using an origin-checked message channel. The preview shares the public `PageContent` and component registry; it does not fetch or publish drafts. Mobile (390px), tablet (768px) and desktop (1440px) selectors live in the panel. Missing renderer types are reported in preview only.
