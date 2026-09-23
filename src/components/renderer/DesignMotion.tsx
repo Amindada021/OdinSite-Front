@@ -27,7 +27,7 @@ export function DesignMotion({
   appearance?: AppearanceConfig | null;
   animation?: AnimationConfig | null;
   fonts?: FontDto[];
-  assets?: Record<string, MediaDto> | Record<number, MediaDto>;
+  assets?: Record<string, MediaDto>;
   children: ReactNode;
 }) {
   const ref = useRef<HTMLDivElement>(null);
