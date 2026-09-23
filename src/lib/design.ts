@@ -2,7 +2,7 @@ import type { CSSProperties } from "react";
 import type { AppearanceConfig, FontDto, MediaDto, SiteThemeConfig } from "./contracts";
 import { mediaUrl } from "./media-url";
 
-type Assets = Record<string, MediaDto> | Record<number, MediaDto> | undefined;
+type Assets = Record<string, MediaDto> | undefined;
 
 function px(value?: number | null) {
   return value == null ? undefined : `${value}px`;
@@ -25,7 +25,7 @@ function shadow(value: AppearanceConfig["shadow"]) {
 
 function asset(id: number | null | undefined, assets: Assets) {
   if (id == null || !assets) return undefined;
-  return assets[id] ?? assets[String(id)];
+  return assets[String(id)];
 }
 
 export function appearanceStyle(
