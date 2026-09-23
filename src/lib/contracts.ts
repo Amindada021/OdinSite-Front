@@ -154,7 +154,7 @@ export interface PublicPagePayload {
   };
   components: ComponentDto[];
   fonts?: FontDto[];
-  designAssets?: Record<string, MediaDto> | Record<number, MediaDto>;
+  designAssets?: Record<string, MediaDto>;
 }
 
 export interface PublicPageResponse {
