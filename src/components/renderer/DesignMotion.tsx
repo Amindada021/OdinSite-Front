@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import type { AnimationConfig, AppearanceConfig, FontDto, MediaDto } from "@/lib/contracts";
 import { appearanceStyle } from "@/lib/design";
 
@@ -125,7 +125,7 @@ export function DesignMotion({
   const strong = effective?.intensity === "strong";
   const base = useMemo(() => appearanceStyle(appearance, fonts, assets), [appearance, fonts, assets]);
 
-  const motionStyle = enabled ? {
+  const motionStyle: CSSProperties = enabled ? {
     transitionProperty: "opacity, transform, filter",
     transitionDuration: `${duration}ms`,
     transitionDelay: `${delay}ms`,
