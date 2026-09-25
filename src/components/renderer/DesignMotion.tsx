@@ -1,15 +1,37 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import type { AnimationConfig, AppearanceConfig, FontDto, MediaDto } from "@/lib/contracts";
+import type { AnimationConfig, AppearanceConfig, FontDto, MediaDto, SiteThemeConfig } from "@/lib/contracts";
 import { appearanceStyle } from "@/lib/design";
 
 type Breakpoint = "mobile" | "tablet" | "desktop";
+type Breakpoints = SiteThemeConfig["breakpoints"];
+
+function mergeAppearance(base: AppearanceConfig | null | undefined, breakpoint: Breakpoint) {
+  if (!base) return base;
+  const override = base.responsive?.[breakpoint];
+  if (!override) return base;
+  return {
+    ...base,
+    ...override,
+    padding: { ...(base.padding ?? {}), ...(override.padding ?? {}) },
+    margin: { ...(base.margin ?? {}), ...(override.margin ?? {}) },
+    border: { ...(base.border ?? {}), ...(override.border ?? {}) },
+    borderRadius: { ...(base.borderRadius ?? {}), ...(override.borderRadius ?? {}) },
+    shadow: { ...(base.shadow ?? {}), ...(override.shadow ?? {}) },
+    responsive: base.responsive,
+  };
+}
 
 function mergeAnimation(base: AnimationConfig | null | undefined, breakpoint: Breakpoint): AnimationConfig | null | undefined {
   if (!base) return base;
   const override = base.responsive?.[breakpoint];
-  if (!override) return base;
+  if (!override) {
+    if (breakpoint === "mobile" && base.preset === "full-scroll-3d" && base.options?.mobileFallbackPreset) {
+      return { ...base, preset: base.options.mobileFallbackPreset };
+    }
+    return base;
+  }
   return {
     ...base,
     ...override,
@@ -19,11 +41,23 @@ function mergeAnimation(base: AnimationConfig | null | undefined, breakpoint: Br
   };
 }
 
-function presetTransform(animation: AnimationConfig | null | undefined, strong: boolean) {
+function presetTransform(animation: AnimationConfig | null | undefined) {
   const preset = animation?.preset;
-  const distance = strong ? 48 : 24;
+  const intensity = animation?.intensity === "strong" ? 1.5 : animation?.intensity === "subtle" ? 0.6 : 1;
+  const distance = 24 * intensity;
   const depth = animation?.options?.depth ?? 40;
   const perspective = animation?.options?.perspective ?? 1200;
+  const transform = animation?.transform ?? {};
+  const custom = [
+    transform.translateX != null ? `translateX(${transform.translateX}px)` : "",
+    transform.translateY != null ? `translateY(${transform.translateY}px)` : "",
+    transform.translateZ != null ? `translateZ(${transform.translateZ}px)` : "",
+    transform.rotateX != null ? `rotateX(${transform.rotateX}deg)` : "",
+    transform.rotateY != null ? `rotateY(${transform.rotateY}deg)` : "",
+    transform.rotateZ != null ? `rotateZ(${transform.rotateZ}deg)` : "",
+    transform.scaleFrom != null ? `scale(${transform.scaleFrom})` : "",
+  ].filter(Boolean).join(" ");
+  if (custom) return custom;
 
   switch (preset) {
     case "section-reveal":
@@ -59,12 +93,14 @@ export function DesignMotion({
   animation,
   fonts,
   assets,
+  breakpoints,
   children,
 }: {
   appearance?: AppearanceConfig | null;
   animation?: AnimationConfig | null;
   fonts?: FontDto[];
   assets?: Record<string, MediaDto>;
+  breakpoints?: Breakpoints;
   children: ReactNode;
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -75,12 +111,14 @@ export function DesignMotion({
   useEffect(() => {
     const update = () => {
       const width = window.innerWidth;
-      setBreakpoint(width <= 767 ? "mobile" : width <= 1023 ? "tablet" : "desktop");
+      const mobileMax = breakpoints?.mobileMax ?? 767;
+      const tabletMax = breakpoints?.tabletMax ?? 1023;
+      setBreakpoint(width <= mobileMax ? "mobile" : width <= tabletMax ? "tablet" : "desktop");
     };
     update();
     window.addEventListener("resize", update, { passive: true });
     return () => window.removeEventListener("resize", update);
-  }, []);
+  }, [breakpoints?.mobileMax, breakpoints?.tabletMax]);
 
   const effective = useMemo(() => mergeAnimation(animation, breakpoint), [animation, breakpoint]);
   const enabled = effective?.enabled !== false && !!effective?.preset && effective.preset !== "none";
@@ -122,19 +160,27 @@ export function DesignMotion({
   const reduce = effective?.respectReducedMotion !== false;
   const duration = effective?.durationMs ?? 700;
   const delay = effective?.delayMs ?? 0;
-  const strong = effective?.intensity === "strong";
-  const base = useMemo(() => appearanceStyle(appearance, fonts, assets), [appearance, fonts, assets]);
+  const effectiveAppearance = useMemo(() => mergeAppearance(appearance, breakpoint), [appearance, breakpoint]);
+  const base = useMemo(() => appearanceStyle(effectiveAppearance, fonts, assets), [effectiveAppearance, fonts, assets]);
+  const stagger = effective?.staggerMs ?? 90;
+  const customOpacity = effective?.transform?.opacityFrom;
+  const blurFrom = effective?.transform?.blurFromPx ?? 12;
+  const isStagger = effective?.preset === "stagger-children";
+  const isReveal = effective?.preset === "reveal-mask";
 
-  const motionStyle: CSSProperties = enabled ? {
-    transitionProperty: "opacity, transform, filter",
-    transitionDuration: `${duration}ms`,
+  const motionStyle: CSSProperties & Record<string, string | number | undefined> = enabled ? {
+    transitionProperty: "opacity, transform, filter, clip-path",
+    transitionDuration: effective?.durationMs == null ? "var(--os-motion-duration, 700ms)" : `${duration}ms`,
     transitionDelay: `${delay}ms`,
-    transitionTimingFunction: easing(effective?.easing),
-    opacity: shown ? (appearance?.opacity ?? 1) : (effective?.preset === "blur-in" ? 0.3 : 0),
-    transform: shown ? "none" : presetTransform(effective, strong),
-    filter: !shown && effective?.preset === "blur-in" ? "blur(12px)" : "none",
+    transitionTimingFunction: effective?.easing == null ? "var(--os-motion-easing, ease-out)" : easing(effective.easing),
+    opacity: isStagger ? (effectiveAppearance?.opacity ?? 1) : shown ? (effectiveAppearance?.opacity ?? 1) : (customOpacity ?? (effective?.preset === "blur-in" ? 0.3 : 0)),
+    transform: isStagger || shown ? "none" : presetTransform(effective),
+    filter: !shown && effective?.preset === "blur-in" ? `blur(${blurFrom}px)` : "none",
+    clipPath: isReveal ? (shown ? "inset(0 0 0 0)" : "inset(0 0 100% 0)") : undefined,
     transformStyle: effective?.preset === "full-scroll-3d" ? "preserve-3d" : undefined,
     perspective: effective?.preset === "full-scroll-3d" ? `${effective.options?.perspective ?? 1200}px` : undefined,
+    "--os-stagger-duration": `${duration}ms`,
+    "--os-stagger-step": `${stagger}ms`,
   } : {};
 
   return (
@@ -143,6 +189,7 @@ export function DesignMotion({
       className="os-design-node"
       data-animation-preset={effective?.preset ?? "none"}
       data-animation-breakpoint={breakpoint}
+      data-animation-state={shown ? "visible" : "hidden"}
       data-reduced-motion={reduce ? "respect" : "ignore"}
       style={{ ...base, ...motionStyle }}
       onPointerEnter={() => setHovered(true)}

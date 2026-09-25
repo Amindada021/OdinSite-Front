@@ -101,10 +101,186 @@ button, input, textarea, select { font: inherit; }
 .site-shell h5,
 .site-shell h6 {
   font-family: var(--os-font-heading, var(--os-font-body, inherit));
+  line-height: var(--os-heading-line-height, inherit);
+  font-weight: var(--os-heading-font-weight, inherit);
 }
 
 .os-design-node {
   box-sizing: border-box;
+}
+
+.os-design-node[data-animation-preset="stagger-children"] > * > * {
+  transition-property: opacity, transform, filter;
+  transition-duration: var(--os-stagger-duration, var(--os-motion-duration, 700ms));
+  transition-timing-function: var(--os-motion-easing, ease-out);
+}
+
+.os-design-node[data-animation-preset="stagger-children"][data-animation-state="hidden"] > * > * {
+  opacity: 0;
+  transform: translateY(24px);
+}
+
+.os-design-node[data-animation-preset="stagger-children"][data-animation-state="visible"] > * > * {
+  opacity: 1;
+  transform: none;
+}
+
+.os-design-node[data-animation-preset="stagger-children"] > * > :nth-child(2) { transition-delay: calc(var(--os-stagger-step, 90ms) * 1); }
+.os-design-node[data-animation-preset="stagger-children"] > * > :nth-child(3) { transition-delay: calc(var(--os-stagger-step, 90ms) * 2); }
+.os-design-node[data-animation-preset="stagger-children"] > * > :nth-child(4) { transition-delay: calc(var(--os-stagger-step, 90ms) * 3); }
+.os-design-node[data-animation-preset="stagger-children"] > * > :nth-child(5) { transition-delay: calc(var(--os-stagger-step, 90ms) * 4); }
+.os-design-node[data-animation-preset="stagger-children"] > * > :nth-child(6) { transition-delay: calc(var(--os-stagger-step, 90ms) * 5); }
+.os-design-node[data-animation-preset="stagger-children"] > * > :nth-child(n+7) { transition-delay: calc(var(--os-stagger-step, 90ms) * 6); }
+
+/* Full-page scrollytelling mode. Each backend component becomes one scene in
+   a sticky perspective stage; ordinary document flow remains the fallback. */
+.os-full-scroll-3d {
+  position: relative;
+  min-height: 100svh;
+  background: var(--bg, #0f1110);
+  color: var(--ink, #f1efe8);
+}
+
+.os-full-scroll-3d__stage {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at calc(50% + var(--os-pointer-shift-x, 0%)) calc(42% + var(--os-pointer-shift-y, 0%)), color-mix(in srgb, var(--accent, #ff4f2e) 16%, transparent), transparent 43%),
+    var(--bg, #0f1110);
+}
+
+.os-full-scroll-3d__stage::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  left: -20%;
+  right: -20%;
+  bottom: -27%;
+  height: 72%;
+  opacity: .16;
+  pointer-events: none;
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--accent, currentColor) 35%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--accent, currentColor) 35%, transparent) 1px, transparent 1px);
+  background-size: clamp(42px, 6vw, 90px) clamp(42px, 6vw, 90px);
+  transform-origin: 50% 100%;
+  transform: perspective(520px) rotateX(67deg) translate3d(var(--os-pointer-grid-x, 0px), 0, 0);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 48%, #000 100%);
+}
+
+.os-full-scroll-3d__stage::after {
+  content: "";
+  position: absolute;
+  z-index: 90;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at center, transparent 42%, color-mix(in srgb, var(--bg, #0f1110) 68%, transparent) 100%),
+    linear-gradient(to bottom, color-mix(in srgb, var(--bg, #0f1110) 18%, transparent), transparent 18%, transparent 78%, color-mix(in srgb, var(--bg, #0f1110) 24%, transparent));
+}
+
+.os-full-scroll-3d__camera {
+  position: absolute;
+  inset: 0;
+  perspective: var(--os-scene-perspective, 1200px);
+  perspective-origin: 50% 48%;
+  transform-style: preserve-3d;
+  z-index: 1;
+  transform: rotateX(var(--os-camera-y, 0deg)) rotateY(var(--os-camera-x, 0deg));
+  transition: transform 260ms cubic-bezier(.22,.75,.22,1);
+  will-change: transform;
+}
+
+.os-full-scroll-3d__scene {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  align-items: center;
+  overflow: hidden auto;
+  transform-origin: 50% 50%;
+  transform-style: preserve-3d;
+  will-change: transform, opacity, filter;
+  backface-visibility: hidden;
+  overscroll-behavior-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.os-full-scroll-3d__scene[data-active="false"] {
+  overflow-y: hidden;
+}
+
+.os-full-scroll-3d__scene[data-active="true"] {
+  overflow-y: auto;
+}
+
+.os-full-scroll-3d__scene > .os-design-node {
+  width: 100%;
+  min-height: 100svh;
+}
+
+.os-full-scroll-3d__scene section {
+  border-radius: var(--os-radius, 0);
+}
+
+.os-full-scroll-3d__ambient {
+  position: absolute;
+  inset: -20%;
+  z-index: 0;
+  opacity: .5;
+  transform: translate3d(var(--os-pointer-ambient-x, 0vw), var(--os-pointer-ambient-y, 0vh), -180px) rotate(var(--os-scene-turn, 0deg));
+  transform-style: preserve-3d;
+  pointer-events: none;
+}
+
+.os-full-scroll-3d__ambient span {
+  position: absolute;
+  width: min(54vw, 720px);
+  aspect-ratio: 1;
+  border: 1px solid color-mix(in srgb, var(--accent, #ff4f2e) 22%, transparent);
+  border-radius: 50%;
+  filter: blur(.2px);
+}
+
+.os-full-scroll-3d__ambient span:nth-child(1) { left: 4%; top: 7%; }
+.os-full-scroll-3d__ambient span:nth-child(2) { right: 0; top: 31%; transform: translateZ(-140px) scale(.72); }
+.os-full-scroll-3d__ambient span:nth-child(3) { left: 34%; bottom: -28%; transform: translateZ(110px) scale(1.25); }
+
+.os-full-scroll-3d__status {
+  position: absolute;
+  z-index: 100;
+  right: clamp(18px, 3vw, 48px);
+  bottom: clamp(18px, 3vw, 42px);
+  display: grid;
+  grid-template-columns: auto minmax(70px, 10vw) auto;
+  align-items: center;
+  gap: 10px;
+  font: 11px/1 var(--os-font-mono, monospace);
+  letter-spacing: .12em;
+}
+
+.os-full-scroll-3d__status i {
+  position: relative;
+  height: 1px;
+  overflow: hidden;
+  background: color-mix(in srgb, currentColor 22%, transparent);
+}
+
+.os-full-scroll-3d__status b {
+  position: absolute;
+  inset: 0;
+  background: var(--accent, currentColor);
+  transform-origin: left center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .os-full-scroll-3d { height: auto !important; }
+  .os-full-scroll-3d__stage { position: relative; height: auto; overflow: visible; }
+  .os-full-scroll-3d__scene { position: relative; opacity: 1 !important; transform: none !important; }
+  .os-full-scroll-3d__ambient,
+  .os-full-scroll-3d__status { display: none; }
 }
 
 @media (max-width: 767px) {

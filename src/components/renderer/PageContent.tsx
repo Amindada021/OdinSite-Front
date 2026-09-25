@@ -1,17 +1,14 @@
 import type { PublicPagePayload } from "@/lib/contracts";
 import { mediaUrl } from "@/lib/media-url";
-import { appearanceStyle, themeStyle } from "@/lib/design";
+import { resolveAppearance, themeStyle } from "@/lib/design";
 import { ComponentRenderer } from "./ComponentRenderer";
-import { DesignMotion } from "./DesignMotion";
+import { PageMotion } from "./PageMotion";
 
 // Shared by the public server-rendered page and the live editor preview.
 export function PageContent({ payload, preview = false }: { payload: PublicPagePayload; preview?: boolean }) {
   const background = mediaUrl(payload.page.background);
-  const pageAppearance = payload.page.resolvedAppearance ?? payload.page.appearance;
-  const shellStyle = {
-    ...themeStyle(payload.website.theme, payload.fonts),
-    ...appearanceStyle(pageAppearance, payload.fonts, payload.designAssets),
-  };
+  const pageAppearance = resolveAppearance(payload.page.resolvedAppearance, payload.page.appearance);
+  const shellStyle = themeStyle(payload.website.theme, payload.fonts);
 
   return (
     <main id="main" className="site-shell os-design-surface" style={shellStyle}>
@@ -25,7 +22,13 @@ export function PageContent({ payload, preview = false }: { payload: PublicPageP
         }} />
       ) : null}
 
-      <DesignMotion animation={payload.page.animation}>
+      <PageMotion
+        appearance={pageAppearance}
+        animation={payload.page.animation}
+        fonts={payload.fonts}
+        assets={payload.designAssets}
+        breakpoints={payload.website.theme?.breakpoints}
+      >
         {payload.components.map(component => (
           <ComponentRenderer
             component={component}
@@ -33,9 +36,10 @@ export function PageContent({ payload, preview = false }: { payload: PublicPageP
             preview={preview}
             fonts={payload.fonts}
             assets={payload.designAssets}
+            breakpoints={payload.website.theme?.breakpoints}
           />
         ))}
-      </DesignMotion>
+      </PageMotion>
     </main>
   );
 }

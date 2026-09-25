@@ -1,4 +1,4 @@
-import type { ComponentDto, FontDto, MediaDto } from "@/lib/contracts";
+import type { ComponentDto, FontDto, MediaDto, SiteThemeConfig } from "@/lib/contracts";
 import { ContactCta } from "@/components/sections/contact-cta/ContactCta";
 import { HeroTypography } from "@/components/sections/hero-typography/HeroTypography";
 import { IntroStatement } from "@/components/sections/intro-statement/IntroStatement";
@@ -8,6 +8,7 @@ import { ProjectShowcase } from "@/components/sections/project-showcase/ProjectS
 import { ServiceAccordion } from "@/components/sections/service-accordion/ServiceAccordion";
 import { SkillList } from "@/components/sections/skill-list/SkillList";
 import { DesignMotion } from "./DesignMotion";
+import { resolveAppearance } from "@/lib/design";
 
 type Section = (props: { id: number; data: Record<string, unknown> }) => React.ReactNode;
 
@@ -27,11 +28,13 @@ export function ComponentRenderer({
   preview = false,
   fonts,
   assets,
+  breakpoints,
 }: {
   component: ComponentDto;
   preview?: boolean;
   fonts?: FontDto[];
   assets?: Record<string, MediaDto>;
+  breakpoints?: SiteThemeConfig["breakpoints"];
 }) {
   const SectionComponent = registry[component.type];
 
@@ -45,10 +48,11 @@ export function ComponentRenderer({
 
   return (
     <DesignMotion
-      appearance={component.resolvedAppearance ?? component.appearance}
+      appearance={resolveAppearance(component.resolvedAppearance, component.appearance)}
       animation={component.animation}
       fonts={fonts}
       assets={assets}
+      breakpoints={breakpoints}
     >
       <SectionComponent id={component.id} data={component.data} />
     </DesignMotion>
