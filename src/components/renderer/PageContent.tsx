@@ -1,13 +1,13 @@
 import type { PublicPagePayload } from "@/lib/contracts";
 import { mediaUrl } from "@/lib/media-url";
-import { themeStyle } from "@/lib/design";
+import { resolveAppearance, themeStyle } from "@/lib/design";
 import { ComponentRenderer } from "./ComponentRenderer";
 import { PageMotion } from "./PageMotion";
 
 // Shared by the public server-rendered page and the live editor preview.
 export function PageContent({ payload, preview = false }: { payload: PublicPagePayload; preview?: boolean }) {
   const background = mediaUrl(payload.page.background);
-  const pageAppearance = payload.page.resolvedAppearance ?? payload.page.appearance;
+  const pageAppearance = resolveAppearance(payload.page.resolvedAppearance, payload.page.appearance);
   const shellStyle = themeStyle(payload.website.theme, payload.fonts);
 
   return (

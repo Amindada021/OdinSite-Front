@@ -23,6 +23,13 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
 
+function sceneOpacity(distance: number) {
+  // Smoothstep cross-fade: adjacent scenes are completely hidden at rest,
+  // while both remain visible only during the actual transition.
+  const visible = clamp(1 - distance, 0, 1);
+  return visible * visible * (3 - 2 * visible);
+}
+
 function sceneTransform(
   delta: number,
   depth: number,
@@ -147,7 +154,7 @@ export function PageMotion({
           {scenes.map((scene, index) => {
             const delta = index - progress;
             const distance = Math.abs(delta);
-            const opacity = clamp(1 - distance * 0.78, 0, 1);
+            const opacity = sceneOpacity(distance);
             const isInteractive = Math.abs(index - activeIndex) < 0.5;
             return (
               <div

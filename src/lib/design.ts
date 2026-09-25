@@ -4,6 +4,35 @@ import { mediaUrl } from "./media-url";
 
 type Assets = Record<string, MediaDto> | undefined;
 
+function nonNull<T extends object>(base: T | null | undefined, override: T | null | undefined): T | undefined {
+  if (!base && !override) return undefined;
+  const result: Record<string, unknown> = { ...(base ?? {}) };
+  for (const [key, value] of Object.entries(override ?? {})) {
+    if (value != null) result[key] = value;
+  }
+  return result as T;
+}
+
+// Public snapshots normally contain the fully inherited resolvedAppearance.
+// Live preview may contain a newer raw appearance beside a stale/null resolved
+// object, so non-null raw values must win without destroying inherited values.
+export function resolveAppearance(
+  resolved: AppearanceConfig | null | undefined,
+  raw: AppearanceConfig | null | undefined
+): AppearanceConfig | undefined {
+  if (!resolved) return raw ?? undefined;
+  if (!raw) return resolved;
+  return {
+    ...nonNull(resolved, raw),
+    padding: nonNull(resolved.padding, raw.padding),
+    margin: nonNull(resolved.margin, raw.margin),
+    border: nonNull(resolved.border, raw.border),
+    borderRadius: nonNull(resolved.borderRadius, raw.borderRadius),
+    shadow: nonNull(resolved.shadow, raw.shadow),
+    responsive: nonNull(resolved.responsive, raw.responsive),
+  };
+}
+
 function px(value?: number | null) {
   return value == null ? undefined : `${value}px`;
 }

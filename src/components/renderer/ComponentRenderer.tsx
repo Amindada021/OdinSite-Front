@@ -8,6 +8,7 @@ import { ProjectShowcase } from "@/components/sections/project-showcase/ProjectS
 import { ServiceAccordion } from "@/components/sections/service-accordion/ServiceAccordion";
 import { SkillList } from "@/components/sections/skill-list/SkillList";
 import { DesignMotion } from "./DesignMotion";
+import { resolveAppearance } from "@/lib/design";
 
 type Section = (props: { id: number; data: Record<string, unknown> }) => React.ReactNode;
 
@@ -47,7 +48,7 @@ export function ComponentRenderer({
 
   return (
     <DesignMotion
-      appearance={component.resolvedAppearance ?? component.appearance}
+      appearance={resolveAppearance(component.resolvedAppearance, component.appearance)}
       animation={component.animation}
       fonts={fonts}
       assets={assets}
