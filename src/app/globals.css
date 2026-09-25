@@ -132,6 +132,112 @@ button, input, textarea, select { font: inherit; }
 .os-design-node[data-animation-preset="stagger-children"] > * > :nth-child(6) { transition-delay: calc(var(--os-stagger-step, 90ms) * 5); }
 .os-design-node[data-animation-preset="stagger-children"] > * > :nth-child(n+7) { transition-delay: calc(var(--os-stagger-step, 90ms) * 6); }
 
+/* Full-page scrollytelling mode. Each backend component becomes one scene in
+   a sticky perspective stage; ordinary document flow remains the fallback. */
+.os-full-scroll-3d {
+  position: relative;
+  min-height: 100svh;
+  background: var(--bg, #0f1110);
+  color: var(--ink, #f1efe8);
+}
+
+.os-full-scroll-3d__stage {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--accent, #ff4f2e) 12%, transparent), transparent 42%),
+    var(--bg, #0f1110);
+}
+
+.os-full-scroll-3d__camera {
+  position: absolute;
+  inset: 0;
+  perspective: var(--os-scene-perspective, 1200px);
+  perspective-origin: 50% 48%;
+  transform-style: preserve-3d;
+  z-index: 1;
+}
+
+.os-full-scroll-3d__scene {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  align-items: center;
+  overflow: hidden auto;
+  transform-origin: 50% 50%;
+  transform-style: preserve-3d;
+  will-change: transform, opacity;
+}
+
+.os-full-scroll-3d__scene > .os-design-node {
+  width: 100%;
+  min-height: 100svh;
+}
+
+.os-full-scroll-3d__scene section {
+  border-radius: var(--os-radius, 0);
+}
+
+.os-full-scroll-3d__ambient {
+  position: absolute;
+  inset: -20%;
+  z-index: 0;
+  opacity: .5;
+  transform: rotate(var(--os-scene-turn, 0deg));
+  pointer-events: none;
+}
+
+.os-full-scroll-3d__ambient span {
+  position: absolute;
+  width: min(54vw, 720px);
+  aspect-ratio: 1;
+  border: 1px solid color-mix(in srgb, var(--accent, #ff4f2e) 22%, transparent);
+  border-radius: 50%;
+  filter: blur(.2px);
+}
+
+.os-full-scroll-3d__ambient span:nth-child(1) { left: 4%; top: 7%; }
+.os-full-scroll-3d__ambient span:nth-child(2) { right: 0; top: 31%; transform: scale(.72); }
+.os-full-scroll-3d__ambient span:nth-child(3) { left: 34%; bottom: -28%; transform: scale(1.25); }
+
+.os-full-scroll-3d__status {
+  position: absolute;
+  z-index: 100;
+  right: clamp(18px, 3vw, 48px);
+  bottom: clamp(18px, 3vw, 42px);
+  display: grid;
+  grid-template-columns: auto minmax(70px, 10vw) auto;
+  align-items: center;
+  gap: 10px;
+  font: 11px/1 var(--os-font-mono, monospace);
+  letter-spacing: .12em;
+}
+
+.os-full-scroll-3d__status i {
+  position: relative;
+  height: 1px;
+  overflow: hidden;
+  background: color-mix(in srgb, currentColor 22%, transparent);
+}
+
+.os-full-scroll-3d__status b {
+  position: absolute;
+  inset: 0;
+  background: var(--accent, currentColor);
+  transform-origin: left center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .os-full-scroll-3d { height: auto !important; }
+  .os-full-scroll-3d__stage { position: relative; height: auto; overflow: visible; }
+  .os-full-scroll-3d__scene { position: relative; opacity: 1 !important; transform: none !important; }
+  .os-full-scroll-3d__ambient,
+  .os-full-scroll-3d__status { display: none; }
+}
+
 @media (max-width: 767px) {
   .os-design-node,
   .os-design-surface {

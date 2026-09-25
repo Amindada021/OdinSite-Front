@@ -2,7 +2,7 @@ import type { PublicPagePayload } from "@/lib/contracts";
 import { mediaUrl } from "@/lib/media-url";
 import { themeStyle } from "@/lib/design";
 import { ComponentRenderer } from "./ComponentRenderer";
-import { DesignMotion } from "./DesignMotion";
+import { PageMotion } from "./PageMotion";
 
 // Shared by the public server-rendered page and the live editor preview.
 export function PageContent({ payload, preview = false }: { payload: PublicPagePayload; preview?: boolean }) {
@@ -22,7 +22,7 @@ export function PageContent({ payload, preview = false }: { payload: PublicPageP
         }} />
       ) : null}
 
-      <DesignMotion
+      <PageMotion
         appearance={pageAppearance}
         animation={payload.page.animation}
         fonts={payload.fonts}
@@ -39,7 +39,7 @@ export function PageContent({ payload, preview = false }: { payload: PublicPageP
             breakpoints={payload.website.theme?.breakpoints}
           />
         ))}
-      </DesignMotion>
+      </PageMotion>
     </main>
   );
 }
