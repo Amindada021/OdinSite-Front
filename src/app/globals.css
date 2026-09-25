@@ -204,6 +204,16 @@ button, input, textarea, select { font: inherit; }
   transform-style: preserve-3d;
   will-change: transform, opacity, filter;
   backface-visibility: hidden;
+  overscroll-behavior-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.os-full-scroll-3d__scene[data-active="false"] {
+  overflow-y: hidden;
+}
+
+.os-full-scroll-3d__scene[data-active="true"] {
+  overflow-y: auto;
 }
 
 .os-full-scroll-3d__scene > .os-design-node {

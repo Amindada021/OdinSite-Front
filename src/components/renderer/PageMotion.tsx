@@ -65,7 +65,10 @@ export function PageMotion({
   children: ReactNode;
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
+  const sceneRefs = useRef<Array<HTMLDivElement | null>>([]);
   const previousProgressRef = useRef(0);
+  const currentProgressRef = useRef(0);
+  const activeIndexRef = useRef(0);
   const velocityResetRef = useRef<number | null>(null);
   const scenes = useMemo(() => Children.toArray(children), [children]);
   const [progress, setProgress] = useState(0);
@@ -123,6 +126,45 @@ export function PageMotion({
     };
   }, [compact, isFullScroll, reducedMotion, scenes.length]);
 
+  const activeIndex = clamp(Math.round(progress), 0, Math.max(scenes.length - 1, 0));
+  currentProgressRef.current = progress;
+  activeIndexRef.current = activeIndex;
+
+  useEffect(() => {
+    if (!isFullScroll || compact || reducedMotion) return;
+    const root = rootRef.current;
+    if (!root) return;
+
+    const consumeInnerScroll = (event: WheelEvent) => {
+      const currentIndex = activeIndexRef.current;
+      const panel = sceneRefs.current[currentIndex];
+      if (!panel || !(event.target instanceof Node) || !panel.contains(event.target)) return;
+
+      // Do not capture the transition itself. Once the scene is centered, its
+      // own overflow gets exclusive wheel control until it reaches a boundary.
+      if (Math.abs(currentProgressRef.current - currentIndex) > 0.08) return;
+      const maxScroll = panel.scrollHeight - panel.clientHeight;
+      if (maxScroll <= 1 || event.deltaY === 0) return;
+
+      const delta = event.deltaMode === WheelEvent.DOM_DELTA_LINE
+        ? event.deltaY * 16
+        : event.deltaMode === WheelEvent.DOM_DELTA_PAGE
+          ? event.deltaY * window.innerHeight
+          : event.deltaY;
+      const atStart = panel.scrollTop <= 1;
+      const atEnd = panel.scrollTop >= maxScroll - 1;
+      const canConsume = (delta > 0 && !atEnd) || (delta < 0 && !atStart);
+      if (!canConsume) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      panel.scrollTop = clamp(panel.scrollTop + delta, 0, maxScroll);
+    };
+
+    root.addEventListener("wheel", consumeInnerScroll, { passive: false });
+    return () => root.removeEventListener("wheel", consumeInnerScroll);
+  }, [compact, isFullScroll, reducedMotion]);
+
   if (!isFullScroll || compact || reducedMotion || scenes.length < 2) {
     const fallback = compact && animation?.options?.mobileFallbackPreset
       ? { ...animation, preset: animation.options.mobileFallbackPreset }
@@ -151,7 +193,6 @@ export function PageMotion({
   const perspective = animation?.options?.perspective ?? 1200;
   const depth = animation?.options?.depth ?? 40;
   const cameraMotion = animation?.options?.cameraMotion ?? "depth";
-  const activeIndex = clamp(Math.round(progress), 0, scenes.length - 1);
   const style = appearanceStyle(appearance, fonts, assets) as CSSProperties & Record<string, string | number>;
   style.height = `${scrollScreens * 100}svh`;
   style["--os-scene-perspective"] = `${perspective}px`;
@@ -200,6 +241,7 @@ export function PageMotion({
             const isInteractive = Math.abs(index - activeIndex) < 0.5;
             return (
               <div
+                ref={node => { sceneRefs.current[index] = node; }}
                 className="os-full-scroll-3d__scene"
                 data-active={index === activeIndex ? "true" : "false"}
                 aria-hidden={distance > 0.85}
