@@ -1,4 +1,4 @@
-import type { ComponentDto, FontDto, MediaDto } from "@/lib/contracts";
+import type { ComponentDto, FontDto, MediaDto, SiteThemeConfig } from "@/lib/contracts";
 import { ContactCta } from "@/components/sections/contact-cta/ContactCta";
 import { HeroTypography } from "@/components/sections/hero-typography/HeroTypography";
 import { IntroStatement } from "@/components/sections/intro-statement/IntroStatement";
@@ -27,11 +27,13 @@ export function ComponentRenderer({
   preview = false,
   fonts,
   assets,
+  breakpoints,
 }: {
   component: ComponentDto;
   preview?: boolean;
   fonts?: FontDto[];
   assets?: Record<string, MediaDto>;
+  breakpoints?: SiteThemeConfig["breakpoints"];
 }) {
   const SectionComponent = registry[component.type];
 
@@ -49,6 +51,7 @@ export function ComponentRenderer({
       animation={component.animation}
       fonts={fonts}
       assets={assets}
+      breakpoints={breakpoints}
     >
       <SectionComponent id={component.id} data={component.data} />
     </DesignMotion>
