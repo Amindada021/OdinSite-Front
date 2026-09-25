@@ -36,12 +36,16 @@ function sceneTransform(
   cameraMotion: string | null | undefined
 ) {
   const distance = Math.abs(delta);
-  const z = -distance * depth * 9;
-  const y = delta * 18;
-  const x = cameraMotion === "orbit" ? Math.sin(delta * 1.2) * 10 : 0;
-  const rotateX = cameraMotion === "vertical" ? delta * -5 : delta * 4;
-  const rotateY = cameraMotion === "orbit" ? delta * 8 : 0;
-  const scale = 1 - Math.min(distance * 0.08, 0.28);
+  // Upcoming scenes wait deep inside the tunnel; completed scenes pass the
+  // camera and continue forward instead of merely sliding off the viewport.
+  const z = delta >= 0 ? -delta * depth * 14 : -delta * depth * 10;
+  const y = delta * (cameraMotion === "vertical" ? 14 : 7);
+  const x = cameraMotion === "orbit" ? Math.sin(delta * 1.15) * 13 : 0;
+  const rotateX = cameraMotion === "vertical" ? delta * -7 : delta * 2.5;
+  const rotateY = cameraMotion === "orbit" ? delta * 11 : delta * -1.5;
+  const scale = delta >= 0
+    ? 1 - Math.min(distance * 0.1, 0.32)
+    : 1 + Math.min(distance * 0.12, 0.22);
   return `translate3d(${x}vw, ${y}vh, ${z}px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(${scale})`;
 }
 
@@ -61,8 +65,12 @@ export function PageMotion({
   children: ReactNode;
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
+  const previousProgressRef = useRef(0);
+  const velocityResetRef = useRef<number | null>(null);
   const scenes = useMemo(() => Children.toArray(children), [children]);
   const [progress, setProgress] = useState(0);
+  const [velocity, setVelocity] = useState(0);
+  const [pointer, setPointer] = useState({ x: 0, y: 0 });
   const [compact, setCompact] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
   const isFullScroll = animation?.enabled !== false && animation?.preset === "full-scroll-3d";
@@ -93,7 +101,13 @@ export function PageMotion({
       const rect = root.getBoundingClientRect();
       const scrollable = Math.max(root.offsetHeight - window.innerHeight, 1);
       const ratio = clamp(-rect.top / scrollable, 0, 1);
-      setProgress(ratio * (scenes.length - 1));
+      const nextProgress = ratio * (scenes.length - 1);
+      const delta = nextProgress - previousProgressRef.current;
+      previousProgressRef.current = nextProgress;
+      setVelocity(clamp(delta * 22, -6, 6));
+      if (velocityResetRef.current) window.clearTimeout(velocityResetRef.current);
+      velocityResetRef.current = window.setTimeout(() => setVelocity(0), 110);
+      setProgress(nextProgress);
     };
     const schedule = () => {
       if (!frame) frame = window.requestAnimationFrame(update);
@@ -103,6 +117,7 @@ export function PageMotion({
     window.addEventListener("resize", schedule, { passive: true });
     return () => {
       if (frame) window.cancelAnimationFrame(frame);
+      if (velocityResetRef.current) window.clearTimeout(velocityResetRef.current);
       window.removeEventListener("scroll", schedule);
       window.removeEventListener("resize", schedule);
     };
@@ -135,6 +150,15 @@ export function PageMotion({
   style["--os-scene-perspective"] = `${perspective}px`;
   style["--os-scene-progress"] = progress;
   style["--os-scene-turn"] = `${progress * 3}deg`;
+  style["--os-camera-x"] = `${pointer.x * 1.8}deg`;
+  style["--os-camera-y"] = `${pointer.y * -1.3 + velocity}deg`;
+  style["--os-pointer-x"] = pointer.x;
+  style["--os-pointer-y"] = pointer.y;
+  style["--os-pointer-shift-x"] = `${pointer.x * 5}%`;
+  style["--os-pointer-shift-y"] = `${pointer.y * 4}%`;
+  style["--os-pointer-grid-x"] = `${pointer.x * -12}px`;
+  style["--os-pointer-ambient-x"] = `${pointer.x * 2}vw`;
+  style["--os-pointer-ambient-y"] = `${pointer.y * 2}vh`;
 
   return (
     <div
@@ -143,6 +167,15 @@ export function PageMotion({
       data-scene={activeIndex + 1}
       data-scene-count={scenes.length}
       style={style}
+      onPointerMove={event => {
+        if (animation?.options?.pointerInteraction === false) return;
+        const rect = event.currentTarget.getBoundingClientRect();
+        setPointer({
+          x: clamp(((event.clientX - rect.left) / rect.width - 0.5) * 2, -1, 1),
+          y: clamp(((event.clientY - rect.top) / window.innerHeight - 0.5) * 2, -1, 1),
+        });
+      }}
+      onPointerLeave={() => setPointer({ x: 0, y: 0 })}
     >
       <div className="os-full-scroll-3d__stage">
         <div className="os-full-scroll-3d__ambient" aria-hidden>
@@ -155,6 +188,8 @@ export function PageMotion({
             const delta = index - progress;
             const distance = Math.abs(delta);
             const opacity = sceneOpacity(distance);
+            const blur = Math.min(distance * 7, 12);
+            const brightness = clamp(1 - distance * 0.28, 0.62, 1);
             const isInteractive = Math.abs(index - activeIndex) < 0.5;
             return (
               <div
@@ -164,6 +199,7 @@ export function PageMotion({
                 key={index}
                 style={{
                   opacity,
+                  filter: `blur(${blur}px) brightness(${brightness})`,
                   pointerEvents: isInteractive ? "auto" : "none",
                   transform: sceneTransform(delta, depth, cameraMotion),
                   zIndex: scenes.length - Math.round(distance * 10),
