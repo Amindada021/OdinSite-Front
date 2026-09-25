@@ -66,10 +66,9 @@ export function PageMotion({
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const sceneRefs = useRef<Array<HTMLDivElement | null>>([]);
-  const previousProgressRef = useRef(0);
+  const targetProgressRef = useRef(0);
   const currentProgressRef = useRef(0);
   const activeIndexRef = useRef(0);
-  const velocityResetRef = useRef<number | null>(null);
   const scenes = useMemo(() => Children.toArray(children), [children]);
   const [progress, setProgress] = useState(0);
   const [velocity, setVelocity] = useState(0);
@@ -96,33 +95,63 @@ export function PageMotion({
 
   useEffect(() => {
     if (!isFullScroll || compact || reducedMotion || scenes.length < 2) return;
-    let frame = 0;
-    const update = () => {
-      frame = 0;
+    let motionFrame = 0;
+    let lastTime = performance.now();
+
+    const readTarget = () => {
       const root = rootRef.current;
-      if (!root) return;
+      if (!root) return currentProgressRef.current;
       const rect = root.getBoundingClientRect();
       const scrollable = Math.max(root.offsetHeight - window.innerHeight, 1);
       const ratio = clamp(-rect.top / scrollable, 0, 1);
-      const nextProgress = ratio * (scenes.length - 1);
-      const delta = nextProgress - previousProgressRef.current;
-      previousProgressRef.current = nextProgress;
-      setVelocity(clamp(delta * 22, -6, 6));
-      if (velocityResetRef.current) window.clearTimeout(velocityResetRef.current);
-      velocityResetRef.current = window.setTimeout(() => setVelocity(0), 110);
-      setProgress(nextProgress);
+      return ratio * (scenes.length - 1);
     };
-    const schedule = () => {
-      if (!frame) frame = window.requestAnimationFrame(update);
+
+    const animate = (time: number) => {
+      const elapsed = Math.min(time - lastTime, 64);
+      lastTime = time;
+      const current = currentProgressRef.current;
+      const target = targetProgressRef.current;
+      const difference = target - current;
+
+      // Time-based damping keeps the same feel on 60/120 Hz displays and
+      // absorbs trackpad spikes without creating a long, floaty delay.
+      const damping = 1 - Math.exp(-elapsed / 145);
+      const next = Math.abs(difference) < 0.0005
+        ? target
+        : current + difference * damping;
+      currentProgressRef.current = next;
+      setProgress(next);
+      setVelocity(clamp((next - current) * 34, -2.6, 2.6));
+
+      if (next === target) {
+        motionFrame = 0;
+        setVelocity(0);
+        return;
+      }
+      motionFrame = window.requestAnimationFrame(animate);
     };
-    update();
-    window.addEventListener("scroll", schedule, { passive: true });
-    window.addEventListener("resize", schedule, { passive: true });
+
+    const scheduleMotion = () => {
+      targetProgressRef.current = readTarget();
+      if (!motionFrame) {
+        lastTime = performance.now();
+        motionFrame = window.requestAnimationFrame(animate);
+      }
+    };
+
+    // Start at the real scroll position. This prevents a fly-through when the
+    // page is restored/reloaded halfway through the experience.
+    const initial = readTarget();
+    targetProgressRef.current = initial;
+    currentProgressRef.current = initial;
+    setProgress(initial);
+    window.addEventListener("scroll", scheduleMotion, { passive: true });
+    window.addEventListener("resize", scheduleMotion, { passive: true });
     return () => {
-      if (frame) window.cancelAnimationFrame(frame);
-      if (velocityResetRef.current) window.clearTimeout(velocityResetRef.current);
-      window.removeEventListener("scroll", schedule);
-      window.removeEventListener("resize", schedule);
+      if (motionFrame) window.cancelAnimationFrame(motionFrame);
+      window.removeEventListener("scroll", scheduleMotion);
+      window.removeEventListener("resize", scheduleMotion);
     };
   }, [compact, isFullScroll, reducedMotion, scenes.length]);
 
@@ -158,7 +187,9 @@ export function PageMotion({
 
       event.preventDefault();
       event.stopPropagation();
-      panel.scrollTop = clamp(panel.scrollTop + delta, 0, maxScroll);
+      // Slightly tame high-resolution trackpads and mouse wheels. Keeping this
+      // synchronous avoids queued smooth-scroll animations at the boundary.
+      panel.scrollTop = clamp(panel.scrollTop + delta * 0.72, 0, maxScroll);
     };
 
     root.addEventListener("wheel", consumeInnerScroll, { passive: false });
@@ -184,11 +215,11 @@ export function PageMotion({
 
   // Keep enough physical scroll distance between scenes that one wheel notch
   // cannot skip the viewer straight to the next component. scrollLength still
-  // acts as a minimum total journey, while 1.8 viewports is the default pace
+  // acts as a minimum total journey, while 2.35 viewports is the default pace
   // for each scene-to-scene transition.
   const transitionCount = Math.max(scenes.length - 1, 1);
   const requestedJourney = animation?.options?.scrollLength ?? scenes.length;
-  const screensPerTransition = Math.max(1.8, requestedJourney / transitionCount);
+  const screensPerTransition = Math.max(2.35, requestedJourney / transitionCount);
   const scrollScreens = 1 + transitionCount * screensPerTransition;
   const perspective = animation?.options?.perspective ?? 1200;
   const depth = animation?.options?.depth ?? 40;
