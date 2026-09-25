@@ -140,7 +140,14 @@ export function PageMotion({
     );
   }
 
-  const scrollScreens = Math.max(scenes.length, animation?.options?.scrollLength ?? scenes.length);
+  // Keep enough physical scroll distance between scenes that one wheel notch
+  // cannot skip the viewer straight to the next component. scrollLength still
+  // acts as a minimum total journey, while 1.8 viewports is the default pace
+  // for each scene-to-scene transition.
+  const transitionCount = Math.max(scenes.length - 1, 1);
+  const requestedJourney = animation?.options?.scrollLength ?? scenes.length;
+  const screensPerTransition = Math.max(1.8, requestedJourney / transitionCount);
+  const scrollScreens = 1 + transitionCount * screensPerTransition;
   const perspective = animation?.options?.perspective ?? 1200;
   const depth = animation?.options?.depth ?? 40;
   const cameraMotion = animation?.options?.cameraMotion ?? "depth";
