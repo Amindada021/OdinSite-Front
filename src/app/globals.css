@@ -149,3 +149,16 @@ button, input, textarea, select { font: inherit; }
     opacity: 1 !important;
   }
 }
+
+
+/* Bridge resolved design tokens into legacy section variables. */
+.site-shell {
+  --bg: var(--os-background, #f1efe8);
+  --surface: var(--os-surface, #e7e4db);
+  --ink: var(--os-text, #11120f);
+  --muted: var(--os-text-muted, #6b6b63);
+  --line: var(--os-border, rgba(17, 18, 15, .16));
+  --accent: var(--os-accent, #ff4f2e);
+  --max: var(--os-content-max-width, 1440px);
+  --pad: var(--os-container-padding, clamp(20px, 4vw, 64px));
+}
