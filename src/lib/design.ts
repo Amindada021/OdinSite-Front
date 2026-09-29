@@ -108,6 +108,7 @@ export function themeStyle(theme: SiteThemeConfig | null | undefined, fonts?: Fo
   const layout = theme.layout ?? {};
   const borders = theme.borders ?? {};
   const motion = theme.motion ?? {};
+  const effects = theme.effects ?? {};
   const style: CSSProperties & Record<string, string | number | undefined> = {};
 
   style["--os-background"] = colors.background ?? undefined;
@@ -136,8 +137,13 @@ export function themeStyle(theme: SiteThemeConfig | null | undefined, fonts?: Fo
   style["--os-border-width"] = px(typeof borders.defaultWidth === "number" ? borders.defaultWidth : undefined);
   style["--os-border-style"] = typeof borders.defaultStyle === "string" ? borders.defaultStyle : undefined;
   style["--os-motion-duration"] = typeof motion.defaultDurationMs === "number" ? `${motion.defaultDurationMs}ms` : undefined;
+  style["--os-backdrop-blur"] = typeof effects.backdropBlur === "number" ? `${effects.backdropBlur}px` : undefined;
+  style["--os-surface-opacity"] = typeof effects.surfaceOpacity === "number" ? effects.surfaceOpacity : undefined;
+  style["--os-glow"] = typeof effects.glow === "string" ? effects.glow : undefined;
   style.direction = (layout.direction === "rtl" || layout.direction === "ltr") ? layout.direction : undefined;
   style.backgroundColor = colors.background ?? undefined;
+  style.backgroundImage = typeof effects.gradient === "string" ? effects.gradient : undefined;
+  style.backgroundAttachment = typeof effects.gradient === "string" ? "fixed" : undefined;
   style.color = colors.text ?? undefined;
   style.fontFamily = fontFamily(typography.fontFamilyBody, fonts);
   style.fontSize = px(typography.baseFontSize);
