@@ -107,6 +107,20 @@ button, input, textarea, select { font: inherit; }
 
 .os-design-node {
   box-sizing: border-box;
+  width: 100%;
+}
+
+/* Sections paint edge-to-edge while their content keeps the theme's maximum
+   content width. This replaces the old max-width-on-section layout that made
+   backgrounds and borders look like a narrow column inside a full-width main. */
+.site-shell .os-design-node > section {
+  width: 100%;
+  max-width: none;
+  margin-inline: 0;
+  padding-inline: max(
+    var(--pad, 20px),
+    calc((100% - var(--max, 1440px)) / 2 + var(--pad, 20px))
+  );
 }
 
 .os-design-node[data-animation-preset="stagger-children"] > * > * {
@@ -205,7 +219,7 @@ button, input, textarea, select { font: inherit; }
   will-change: transform, opacity, filter;
   backface-visibility: hidden;
   overscroll-behavior-y: auto;
-  scrollbar-gutter: stable;
+  scrollbar-gutter: auto;
 }
 
 .os-full-scroll-3d__scene[data-active="false"] {
