@@ -8,8 +8,9 @@ import { DesignMotion } from "./DesignMotion";
 export function PageContent({ payload, preview = false }: { payload: PublicPagePayload; preview?: boolean }) {
   const background = mediaUrl(payload.page.background);
   const pageAppearance = payload.page.resolvedAppearance ?? payload.page.appearance;
+  const resolvedTheme = payload.page.resolvedTheme ?? payload.website.resolvedTheme ?? payload.website.theme;
   const shellStyle = {
-    ...themeStyle(payload.website.theme, payload.fonts),
+    ...themeStyle(resolvedTheme, payload.fonts),
     ...appearanceStyle(pageAppearance, payload.fonts, payload.designAssets),
   };
 
