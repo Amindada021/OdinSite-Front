@@ -53,6 +53,9 @@ export interface AppearanceConfig {
   shadow?: ShadowConfig | null;
   opacity?: number | null;
   overflow?: string | null;
+  backdropBlur?: number | null;
+  gradient?: string | null;
+  textureAssetId?: number | null;
   responsive?: {
     mobile?: AppearanceConfig | null;
     tablet?: AppearanceConfig | null;
@@ -92,6 +95,8 @@ export interface AnimationConfig {
 
 export interface SiteThemeConfig {
   schemaVersion?: number;
+  designStyle?: string | null;
+  styleVersion?: number | null;
   colors?: Record<string, string | null | undefined> | null;
   typography?: {
     fontFamilyBody?: string | null;
@@ -111,11 +116,21 @@ export interface SiteThemeConfig {
   layout?: Record<string, string | number | null | undefined> | null;
   motion?: Record<string, string | number | null | undefined> | null;
   breakpoints?: { mobileMax?: number; tabletMax?: number } | null;
+  effects?: {
+    backdropBlur?: number | null;
+    surfaceOpacity?: number | null;
+    glow?: string | null;
+    gradient?: string | null;
+    textureAssetId?: number | null;
+  } | null;
 }
 
 export interface ComponentDto {
   id: number;
   type: string;
+  order?: number;
+  visible?: boolean;
+  content?: Record<string, unknown>;
   data: Record<string, unknown>;
   appearance?: AppearanceConfig | null;
   resolvedAppearance?: AppearanceConfig | null;
@@ -127,6 +142,7 @@ export interface PublicPagePayload {
     id: number;
     title: string;
     theme?: SiteThemeConfig | null;
+    resolvedTheme?: SiteThemeConfig | null;
   };
   page: {
     id: number;
@@ -134,6 +150,8 @@ export interface PublicPagePayload {
     slug: string;
     isHome: boolean;
     allowComments: boolean;
+    theme?: SiteThemeConfig | null;
+    resolvedTheme?: SiteThemeConfig | null;
     background?: MediaDto | null;
     appearance?: AppearanceConfig | null;
     resolvedAppearance?: AppearanceConfig | null;
