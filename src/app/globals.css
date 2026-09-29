@@ -162,3 +162,16 @@ button, input, textarea, select { font: inherit; }
   --max: var(--os-content-max-width, 1440px);
   --pad: var(--os-container-padding, clamp(20px, 4vw, 64px));
 }
+
+
+/* Resolved design-style effects */
+.site-shell {
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+.os-design-node {
+  background-color: var(--os-surface, transparent);
+  box-shadow: var(--os-glow, none);
+  backdrop-filter: blur(var(--os-backdrop-blur, 0px));
+}
