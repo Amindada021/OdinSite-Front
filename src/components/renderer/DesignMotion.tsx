@@ -7,6 +7,34 @@ import { appearanceStyle } from "@/lib/design";
 type Breakpoint = "mobile" | "tablet" | "desktop";
 type Breakpoints = SiteThemeConfig["breakpoints"];
 
+const PRESET_ALIASES: Record<string, string> = {
+  fade: "fade",
+  fadeup: "fade-up",
+  fadedown: "fade-down",
+  slideleft: "slide-left",
+  slideright: "slide-right",
+  scalein: "scale-in",
+  blurin: "blur-in",
+  revealmask: "reveal-mask",
+  parallax: "parallax",
+  paralax: "parallax",
+  staggerchildren: "stagger-children",
+  stagerchildren: "stagger-children",
+};
+
+/** Accept both the API keys and human-readable values used by older records. */
+export function normalizeAnimationPreset(value: string | null | undefined) {
+  if (!value) return value;
+  const normalized = value
+    .trim()
+    .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
+    .toLowerCase()
+    .replace(/[\s_]+/g, "-")
+    .replace(/-+/g, "-");
+  const compact = normalized.replace(/-/g, "");
+  return PRESET_ALIASES[compact] ?? normalized;
+}
+
 function mergeAppearance(base: AppearanceConfig | null | undefined, breakpoint: Breakpoint) {
   if (!base) return base;
   const override = base.responsive?.[breakpoint];
@@ -28,13 +56,14 @@ function mergeAnimation(base: AnimationConfig | null | undefined, breakpoint: Br
   const override = base.responsive?.[breakpoint];
   if (!override) {
     if (breakpoint === "mobile" && base.preset === "full-scroll-3d" && base.options?.mobileFallbackPreset) {
-      return { ...base, preset: base.options.mobileFallbackPreset };
+      return { ...base, preset: normalizeAnimationPreset(base.options.mobileFallbackPreset) };
     }
-    return base;
+    return { ...base, preset: normalizeAnimationPreset(base.preset) };
   }
   return {
     ...base,
     ...override,
+    preset: normalizeAnimationPreset(override.preset ?? base.preset),
     transform: { ...(base.transform ?? {}), ...(override.transform ?? {}) },
     options: { ...(base.options ?? {}), ...(override.options ?? {}) },
     responsive: base.responsive,
@@ -107,6 +136,7 @@ export function DesignMotion({
   const [breakpoint, setBreakpoint] = useState<Breakpoint>("desktop");
   const [visible, setVisible] = useState(false);
   const [hovered, setHovered] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
   useEffect(() => {
     const update = () => {
@@ -120,8 +150,17 @@ export function DesignMotion({
     return () => window.removeEventListener("resize", update);
   }, [breakpoints?.mobileMax, breakpoints?.tabletMax]);
 
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setPrefersReducedMotion(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+
   const effective = useMemo(() => mergeAnimation(animation, breakpoint), [animation, breakpoint]);
-  const enabled = effective?.enabled !== false && !!effective?.preset && effective.preset !== "none";
+  const shouldReduce = effective?.respectReducedMotion !== false && prefersReducedMotion;
+  const enabled = !shouldReduce && effective?.enabled !== false && !!effective?.preset && effective.preset !== "none";
 
   useEffect(() => {
     if (!enabled) {
@@ -156,6 +195,35 @@ export function DesignMotion({
     return () => observer.disconnect();
   }, [enabled, effective?.trigger, effective?.once, effective?.threshold, breakpoint]);
 
+  useEffect(() => {
+    if (!enabled || effective?.preset !== "parallax") return;
+    const node = ref.current;
+    if (!node) return;
+    let frame = 0;
+
+    const update = () => {
+      frame = 0;
+      const rect = node.getBoundingClientRect();
+      const viewportCenter = window.innerHeight / 2;
+      const nodeCenter = rect.top + rect.height / 2;
+      const progress = Math.max(-1, Math.min(1, (nodeCenter - viewportCenter) / window.innerHeight));
+      const intensity = effective.intensity === "strong" ? 48 : effective.intensity === "subtle" ? 18 : 32;
+      node.style.setProperty("--os-parallax-y", `${progress * intensity}px`);
+    };
+    const schedule = () => {
+      if (!frame) frame = window.requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule, { passive: true });
+    return () => {
+      if (frame) window.cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+      node.style.removeProperty("--os-parallax-y");
+    };
+  }, [enabled, effective?.preset, effective?.intensity]);
+
   const shown = effective?.trigger === "hover" ? hovered : visible;
   const reduce = effective?.respectReducedMotion !== false;
   const duration = effective?.durationMs ?? 700;
@@ -167,14 +235,21 @@ export function DesignMotion({
   const blurFrom = effective?.transform?.blurFromPx ?? 12;
   const isStagger = effective?.preset === "stagger-children";
   const isReveal = effective?.preset === "reveal-mask";
+  const isParallax = effective?.preset === "parallax";
 
   const motionStyle: CSSProperties & Record<string, string | number | undefined> = enabled ? {
     transitionProperty: "opacity, transform, filter, clip-path",
-    transitionDuration: effective?.durationMs == null ? "var(--os-motion-duration, 700ms)" : `${duration}ms`,
+    transitionDuration: isParallax
+      ? `${effective?.durationMs == null ? "var(--os-motion-duration, 700ms)" : `${duration}ms`}, 120ms, ${duration}ms, ${duration}ms`
+      : effective?.durationMs == null ? "var(--os-motion-duration, 700ms)" : `${duration}ms`,
     transitionDelay: `${delay}ms`,
     transitionTimingFunction: effective?.easing == null ? "var(--os-motion-easing, ease-out)" : easing(effective.easing),
     opacity: isStagger ? (effectiveAppearance?.opacity ?? 1) : shown ? (effectiveAppearance?.opacity ?? 1) : (customOpacity ?? (effective?.preset === "blur-in" ? 0.3 : 0)),
-    transform: isStagger || shown ? "none" : presetTransform(effective),
+    transform: isStagger
+      ? "none"
+      : shown
+        ? isParallax ? "translate3d(0,var(--os-parallax-y,0px),0)" : "none"
+        : presetTransform(effective),
     filter: !shown && effective?.preset === "blur-in" ? `blur(${blurFrom}px)` : "none",
     clipPath: isReveal ? (shown ? "inset(0 0 0 0)" : "inset(0 0 100% 0)") : undefined,
     transformStyle: effective?.preset === "full-scroll-3d" ? "preserve-3d" : undefined,
